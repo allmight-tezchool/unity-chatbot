@@ -362,7 +362,7 @@
   <div class="est-section">
     <h3>📅 利用期間・配送エリア</h3>
     <div class="est-grid">
-      <div class="est-field"><label>利用開始日<span class="required">*</span></label><input type="date" id="est-start" /></div>
+      <div class="est-field"><label>利用開始日<span class="required">*</span></label><input type="date" id="est-start" onchange="checkDeadline(this.value)" /></div>
       <div class="est-field"><label>利用終了日<span class="required">*</span></label><input type="date" id="est-end" /></div>
       <div class="est-field est-field-full"><label>配送先エリア<span class="required">*</span></label>
         <select id="est-pref">
@@ -388,6 +388,11 @@
       </div>
       <div id="machineItems"></div>
     </div>
+  </div>
+
+  <div class="form-row">
+    <label>問い合わせ内容（任意）</label>
+    <textarea id="est-message" placeholder="ご希望の利用期間、人数、会場など自由にご記入ください"></textarea>
   </div>
 
   <!-- 簡易見積もりボタン -->
@@ -614,6 +619,7 @@ function resetChat() {
   document.getElementById('est-email').value = '';
   document.getElementById('est-start').value = '';
   document.getElementById('est-end').value = '';
+  document.getElementById('est-message').value = '';
   currentFilter = null;
   closeEstimate();
   initChat();
@@ -905,6 +911,29 @@ function filterMachines(service) {
   }
 }
 
+// 発注期限チェック（利用開始日の前週火曜日を過ぎているか確認）
+function checkDeadline(startDateStr) {
+  if (!startDateStr) return;
+  const startDate = new Date(startDateStr);
+
+  // 利用開始日の前週火曜日を計算
+  // まず利用開始日の週の月曜日を求め、そこから6日引いて前週火曜日を得る
+  const dayOfWeek = startDate.getDay(); // 0=日, 1=月, ..., 6=土
+  const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+  const thisMonday = new Date(startDate);
+  thisMonday.setDate(startDate.getDate() - daysToMonday);
+
+  const prevTuesday = new Date(thisMonday);
+  prevTuesday.setDate(thisMonday.getDate() - 6); // 前週火曜日
+  prevTuesday.setHours(23, 59, 59, 999);
+
+  const today = new Date();
+
+  if (today > prevTuesday) {
+    alert('⚠️ 発注期限を過ぎている可能性があります。\n配送の都合上、利用開始日の前週火曜日までに発注が必要です。\n担当者へ直接ご相談ください。');
+  }
+}
+
 function calcEstimate() {
   const start = document.getElementById('est-start').value;
   const end   = document.getElementById('est-end').value;
@@ -994,6 +1023,7 @@ function resetEstimateForm() {
   document.getElementById('est-email').value = '';
   document.getElementById('est-start').value = '';
   document.getElementById('est-end').value = '';
+  document.getElementById('est-message').value = '';
   currentFilter = null;
 }
 
@@ -1016,6 +1046,7 @@ async function submitEstimate() {
   const start   = document.getElementById('est-start').value;
   const end     = document.getElementById('est-end').value;
   const pref    = document.getElementById('est-pref').options[document.getElementById('est-pref').selectedIndex].text;
+  const message = document.getElementById('est-message').value.trim();
   const quoteTxt = document.getElementById('quoteLine').innerText + '\n' + document.getElementById('quoteTotal').innerText;
 
   if (!company || !person || !tel || !email) {
@@ -1040,6 +1071,7 @@ async function submitEstimate() {
         to, company, person, tel, email,
         service: currentFilter,
         start, end, pref,
+        message,
         quote: quoteTxt
       })
     });
