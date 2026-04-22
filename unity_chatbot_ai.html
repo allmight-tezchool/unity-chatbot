@@ -145,14 +145,27 @@
     .chat-messages::-webkit-scrollbar { width: 4px; }
     .chat-messages::-webkit-scrollbar-thumb { background: #fed7aa; border-radius: 4px; }
 
+    /* ===== モーダルオーバーレイ ===== */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.5); z-index: 1000;
+      justify-content: center; align-items: center;
+      padding: 16px;
+    }
+    .modal-overlay.show { display: flex; }
+
     /* ===== 見積フォームパネル ===== */
     .estimate-panel {
-      width: 500px; background: #fff; border-radius: 20px;
+      width: 100%; max-width: 500px; background: #fff; border-radius: 20px;
       box-shadow: 0 8px 32px rgba(220,120,0,0.13);
-      padding: 24px; display: none; flex-direction: column; gap: 14px;
+      padding: 24px; display: flex; flex-direction: column; gap: 14px;
       max-height: 90vh; overflow-y: auto;
+      animation: slideUp 0.25s ease;
     }
-    .estimate-panel.show { display: flex; }
+    @keyframes slideUp {
+      from { transform: translateY(40px); opacity: 0; }
+      to   { transform: translateY(0);    opacity: 1; }
+    }
     .estimate-panel h2 {
       font-size: 16px; color: #ea580c; font-weight: bold;
       padding-bottom: 10px; border-bottom: 2px solid #fed7aa;
@@ -227,11 +240,12 @@
 
     /* ===== 資料請求フォーム ===== */
     .inquiry-panel {
-      width: 440px; background: #fff; border-radius: 20px;
+      width: 100%; max-width: 440px; background: #fff; border-radius: 20px;
       box-shadow: 0 8px 32px rgba(220,120,0,0.13);
-      padding: 24px; display: none; flex-direction: column; gap: 14px;
+      padding: 24px; display: flex; flex-direction: column; gap: 14px;
+      max-height: 90vh; overflow-y: auto;
+      animation: slideUp 0.25s ease;
     }
-    .inquiry-panel.show { display: flex; }
     .inquiry-panel h2 {
       font-size: 16px; color: #ea580c; font-weight: bold;
       padding-bottom: 10px; border-bottom: 2px solid #fed7aa;
@@ -285,7 +299,8 @@
   </div>
 </div>
 
-<!-- 資料請求フォーム -->
+<!-- 資料請求フォーム モーダル -->
+<div class="modal-overlay" id="inquiryOverlay" onclick="handleOverlayClick(event, 'inquiryOverlay')">
 <div class="inquiry-panel" id="inquiryPanel">
   <h2>📋 資料請求・お問い合わせ</h2>
   <p class="note">ご入力いただいた内容を担当者にお送りします。<br>在庫確認のうえ、折り返しご連絡いたします。</p>
@@ -324,8 +339,10 @@
   <button class="inquiry-submit" id="inquirySubmitBtn" onclick="submitInquiry()">送信する</button>
   <button class="btn-close" onclick="closeInquiry()">閉じる</button>
 </div>
+</div>
 
-<!-- 見積フォームパネル -->
+<!-- 見積フォームパネル モーダル -->
+<div class="modal-overlay" id="estimateOverlay" onclick="handleOverlayClick(event, 'estimateOverlay')">
 <div class="estimate-panel" id="estimatePanel">
   <h2>💰 簡易見積・在庫確認依頼</h2>
   <p class="note">ご希望の内容を入力して簡易料金を確認後、在庫確認依頼を送信してください。</p>
@@ -393,6 +410,7 @@
   <button class="btn-send-est" id="btnSendEst" onclick="submitEstimate()">📩 在庫確認・見積依頼を送る</button>
   <button class="btn-new-est" id="btnNewEst" onclick="resetEstimateForm()">🔄 別の見積もり・在庫確認をする</button>
   <button class="btn-close" onclick="closeEstimate()">閉じる</button>
+</div>
 </div>
 
 <script>
@@ -703,14 +721,14 @@ function setQuickReplies(items) {
 //  資料請求フォーム
 // ============================================================
 function openInquiry() {
-  document.getElementById('inquiryPanel').classList.add('show');
+  document.getElementById('inquiryOverlay').classList.add('show');
   document.getElementById('inquirySuccess').classList.remove('show');
   document.getElementById('inquirySubmitBtn').disabled = false;
   document.getElementById('inquirySubmitBtn').textContent = '送信する';
 }
 
 function closeInquiry() {
-  document.getElementById('inquiryPanel').classList.remove('show');
+  document.getElementById('inquiryOverlay').classList.remove('show');
 }
 
 async function submitInquiry() {
@@ -952,7 +970,7 @@ function calcEstimate() {
 }
 
 function openEstimate() {
-  document.getElementById('estimatePanel').classList.add('show');
+  document.getElementById('estimateOverlay').classList.add('show');
   document.getElementById('estQuoteResult').classList.remove('show');
   document.getElementById('estSuccess').classList.remove('show');
   document.getElementById('btnSendEst').classList.remove('show');
@@ -980,7 +998,14 @@ function resetEstimateForm() {
 }
 
 function closeEstimate() {
-  document.getElementById('estimatePanel').classList.remove('show');
+  document.getElementById('estimateOverlay').classList.remove('show');
+}
+
+// オーバーレイ背景クリックで閉じる
+function handleOverlayClick(event, overlayId) {
+  if (event.target.id === overlayId) {
+    document.getElementById(overlayId).classList.remove('show');
+  }
 }
 
 async function submitEstimate() {
