@@ -347,12 +347,13 @@
   <h2>📞 担当者への連絡希望</h2>
   <p class="note">ご入力いただいた内容を担当者にお送りします。<br>折り返しご連絡いたします。（目安：翌営業日以内）</p>
   <div class="form-row">
-    <label>希望コンテンツ<span class="required">*</span></label>
+    <label>問い合わせコンテンツ<span class="required">*</span></label>
     <select id="con-content">
       <option value="">選択してください</option>
       <option value="オールマイト">🟠 オールマイト（集客装置レンタル）</option>
       <option value="てずくーる">🟢 てずくーる（ワークショップキットレンタル）</option>
       <option value="ぷくっとシールLAB">🔵 ぷくっとシールLAB</option>
+      <option value="その他の問い合わせ">その他の問い合わせ</option>
     </select>
   </div>
   <div class="form-row">
@@ -820,7 +821,8 @@ async function submitContact() {
   const mailMap = {
     'オールマイト': 'allmight@unity-corp.jp',
     'てずくーる': 'tezchool@unity-corp.jp',
-    'ぷくっとシールLAB': 'tezchool@unity-corp.jp'
+    'ぷくっとシールLAB': 'tezchool@unity-corp.jp',
+    'その他の問い合わせ': 'allmight@unity-corp.jp,tezchool@unity-corp.jp'
   };
   const to = mailMap[content] || 'allmight@unity-corp.jp';
 
