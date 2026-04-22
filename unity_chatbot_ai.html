@@ -1,0 +1,1006 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ユニティ サポートBot（AI版）</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Hiragino Sans', 'Meiryo', sans-serif;
+      background: linear-gradient(135deg, #fff8f0, #fff0e0);
+      display: flex; justify-content: center; align-items: flex-start;
+      min-height: 100vh; padding: 20px; gap: 20px; flex-wrap: wrap;
+    }
+
+    /* ===== APIキー入力画面 ===== */
+    .setup-screen {
+      width: 440px; background: #fff; border-radius: 20px;
+      box-shadow: 0 8px 32px rgba(220,120,0,0.13);
+      padding: 40px 32px; text-align: center;
+    }
+    .setup-screen .icon { font-size: 52px; margin-bottom: 16px; }
+    .setup-screen h1 { font-size: 20px; color: #1a1a2e; margin-bottom: 8px; }
+    .setup-screen p { font-size: 13px; color: #666; line-height: 1.7; margin-bottom: 24px; }
+    .api-input {
+      width: 100%; border: 1.5px solid #fed7aa; border-radius: 10px;
+      padding: 12px 14px; font-size: 13px; outline: none; margin-bottom: 12px;
+      font-family: monospace; transition: border 0.2s;
+    }
+    .api-input:focus { border-color: #f97316; }
+    .start-btn {
+      width: 100%; padding: 13px;
+      background: linear-gradient(135deg, #f97316, #ea580c);
+      color: white; border: none; border-radius: 10px;
+      font-size: 15px; font-weight: bold; cursor: pointer; transition: opacity 0.2s;
+    }
+    .start-btn:hover { opacity: 0.88; }
+    .setup-note { margin-top: 16px; font-size: 12px; color: #999; line-height: 1.6; }
+
+    /* ===== チャット ===== */
+    .chat-container {
+      width: 440px; height: 700px; background: #fff;
+      border-radius: 20px; box-shadow: 0 8px 32px rgba(220,120,0,0.13);
+      display: none; flex-direction: column; overflow: hidden;
+    }
+    .chat-container.show { display: flex; }
+
+    .chat-header {
+      background: linear-gradient(135deg, #f97316, #ea580c);
+      color: white; padding: 16px 18px; display: flex; align-items: center; gap: 12px;
+    }
+    .bot-avatar {
+      width: 44px; height: 44px; background: rgba(255,255,255,0.22);
+      border-radius: 50%; display: flex; align-items: center;
+      justify-content: center; font-size: 22px; flex-shrink: 0;
+    }
+    .chat-header-info h2 { font-size: 15px; font-weight: bold; }
+    .chat-header-info p  { font-size: 11px; opacity: 0.88; margin-top: 2px; }
+    .status-dot {
+      width: 7px; height: 7px; background: #bbf7d0; border-radius: 50%;
+      display: inline-block; margin-right: 4px; animation: pulse 2s infinite;
+    }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+    .reset-btn {
+      margin-left: auto; background: rgba(255,255,255,0.18);
+      border: none; color: white; border-radius: 8px;
+      padding: 5px 11px; font-size: 12px; cursor: pointer;
+    }
+    .reset-btn:hover { background: rgba(255,255,255,0.3); }
+
+    .chat-messages {
+      flex: 1; overflow-y: auto; padding: 18px 14px;
+      display: flex; flex-direction: column; gap: 14px;
+    }
+    .message { display: flex; align-items: flex-end; gap: 8px; animation: fadeIn 0.22s ease; }
+    @keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+    .message.user { flex-direction: row-reverse; }
+    .message-avatar {
+      width: 30px; height: 30px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; flex-shrink: 0;
+    }
+    .message.bot  .message-avatar { background: #fff7ed; }
+    .message.user .message-avatar { background: #e0f2fe; }
+    .message.error .message-avatar { background: #fee2e2; }
+    .bubble {
+      max-width: 80%; padding: 11px 14px; border-radius: 18px;
+      font-size: 13.5px; line-height: 1.7; white-space: pre-wrap; word-break: break-word;
+    }
+    .message.bot .bubble {
+      background: #fff7ed; color: #1c1c1c;
+      border-bottom-left-radius: 4px; border: 1px solid #fed7aa;
+    }
+    .message.user .bubble {
+      background: linear-gradient(135deg, #f97316, #ea580c);
+      color: white; border-bottom-right-radius: 4px;
+    }
+    .message.error .bubble {
+      background: #fee2e2; color: #b91c1c;
+      border: 1px solid #fca5a5; border-bottom-left-radius: 4px;
+    }
+
+    .typing-indicator {
+      display: flex; gap: 5px; padding: 11px 15px;
+      background: #fff7ed; border: 1px solid #fed7aa;
+      border-radius: 18px; border-bottom-left-radius: 4px; width: fit-content;
+    }
+    .typing-dot {
+      width: 7px; height: 7px; background: #fb923c;
+      border-radius: 50%; animation: bounce 1.2s infinite;
+    }
+    .typing-dot:nth-child(2){animation-delay:.2s}
+    .typing-dot:nth-child(3){animation-delay:.4s}
+    @keyframes bounce{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-7px)}}
+
+    .quick-replies { display: flex; flex-wrap: wrap; gap: 7px; padding: 0 14px 10px; }
+    .quick-reply-btn {
+      background: #fff; border: 1.5px solid #f97316; color: #ea580c;
+      border-radius: 20px; padding: 6px 13px; font-size: 12px;
+      cursor: pointer; transition: all 0.18s; font-family: inherit;
+    }
+    .quick-reply-btn:hover { background: #f97316; color: white; }
+
+    .chat-input-area {
+      border-top: 1px solid #fed7aa; padding: 11px 13px;
+      display: flex; gap: 9px; align-items: center; background: #fffbf7;
+    }
+    .chat-input {
+      flex: 1; border: 1.5px solid #fed7aa; border-radius: 24px;
+      padding: 10px 15px; font-size: 14px; outline: none;
+      font-family: inherit; transition: border 0.2s;
+    }
+    .chat-input:focus { border-color: #f97316; }
+    .chat-input:disabled { background: #f5f5f5; cursor: not-allowed; }
+    .send-btn {
+      width: 42px; height: 42px; background: linear-gradient(135deg, #f97316, #ea580c);
+      border: none; border-radius: 50%; color: white; font-size: 17px;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: opacity 0.2s; flex-shrink: 0;
+    }
+    .send-btn:hover { opacity: 0.85; }
+    .send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .chat-messages::-webkit-scrollbar { width: 4px; }
+    .chat-messages::-webkit-scrollbar-thumb { background: #fed7aa; border-radius: 4px; }
+
+    /* ===== 見積フォームパネル ===== */
+    .estimate-panel {
+      width: 500px; background: #fff; border-radius: 20px;
+      box-shadow: 0 8px 32px rgba(220,120,0,0.13);
+      padding: 24px; display: none; flex-direction: column; gap: 14px;
+      max-height: 90vh; overflow-y: auto;
+    }
+    .estimate-panel.show { display: flex; }
+    .estimate-panel h2 {
+      font-size: 16px; color: #ea580c; font-weight: bold;
+      padding-bottom: 10px; border-bottom: 2px solid #fed7aa;
+    }
+    .estimate-panel p.note { font-size: 12px; color: #888; line-height: 1.7; margin-top: -6px; }
+    .est-section { background: #fff7ed; border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+    .est-section h3 { font-size: 13px; color: #ea580c; font-weight: bold; }
+    .est-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .est-field { display: flex; flex-direction: column; gap: 3px; }
+    .est-field label { font-size: 11px; color: #888; font-weight: bold; }
+    .est-field input, .est-field select {
+      width: 100%; border: 1.5px solid #e5e7eb; border-radius: 8px;
+      padding: 8px 10px; font-size: 13px; font-family: inherit; outline: none;
+    }
+    .est-field input:focus, .est-field select:focus { border-color: #f97316; }
+    .est-field .required { color: #ef4444; margin-left: 2px; }
+    .est-field-full { grid-column: 1 / -1; }
+    .machine-list { display: flex; flex-direction: column; gap: 6px; }
+    .machine-item {
+      display: flex; align-items: center; gap: 8px;
+      background: #fff; border: 1.5px solid #e5e7eb; border-radius: 8px; padding: 8px 10px;
+      cursor: pointer; transition: border 0.2s;
+    }
+    .machine-item:hover { border-color: #f97316; }
+    .machine-item.selected { border-color: #f97316; background: #fff7ed; }
+    .machine-item input[type=checkbox] { accent-color: #f97316; width: 16px; height: 16px; flex-shrink: 0; }
+    .machine-item span { font-size: 13px; flex: 1; }
+    .machine-item .price-hint { font-size: 11px; color: #888; }
+    .est-quote-result {
+      background: #fff7ed; border: 2px solid #f97316; border-radius: 12px;
+      padding: 14px; display: none;
+    }
+    .est-quote-result.show { display: block; }
+    .est-quote-result h3 { font-size: 14px; color: #ea580c; margin-bottom: 8px; font-weight: bold; }
+    .est-quote-result .quote-line { font-size: 13px; color: #444; line-height: 1.8; }
+    .est-quote-result .quote-total {
+      font-size: 16px; font-weight: bold; color: #ea580c;
+      border-top: 1px solid #fed7aa; margin-top: 8px; padding-top: 8px;
+    }
+    .est-quote-result .quote-note { font-size: 11px; color: #888; margin-top: 6px; }
+    .btn-calc {
+      background: #fff; border: 2px solid #f97316; color: #ea580c;
+      border-radius: 10px; padding: 10px; font-size: 13px; font-weight: bold;
+      cursor: pointer; font-family: inherit; transition: all 0.2s;
+    }
+    .btn-calc:hover { background: #fff7ed; }
+    .btn-send-est {
+      background: linear-gradient(135deg, #f97316, #ea580c);
+      border: none; color: white; border-radius: 10px; padding: 12px;
+      font-size: 14px; font-weight: bold; cursor: pointer; font-family: inherit;
+      transition: opacity 0.2s; display: none;
+    }
+    .btn-send-est.show { display: block; }
+    .btn-send-est:hover { opacity: 0.85; }
+    .btn-send-est:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-new-est {
+      background: linear-gradient(135deg, #10b981, #059669);
+      border: none; color: white; border-radius: 10px; padding: 12px;
+      font-size: 14px; font-weight: bold; cursor: pointer; font-family: inherit;
+      transition: opacity 0.2s; display: none; margin-top: 6px;
+    }
+    .btn-new-est.show { display: block; }
+    .btn-new-est:hover { opacity: 0.85; }
+    .btn-close {
+      background: #f3f4f6; border: none; color: #555; border-radius: 10px;
+      padding: 8px 14px; font-size: 13px; cursor: pointer; font-family: inherit;
+    }
+    .btn-close:hover { background: #e5e7eb; }
+    .est-success { background: #f0fdf4; border: 1.5px solid #86efac; border-radius: 12px; padding: 16px; text-align: center; display: none; }
+    .est-success.show { display: block; }
+    .est-success p { color: #166534; font-size: 13px; line-height: 1.8; }
+
+    /* ===== 資料請求フォーム ===== */
+    .inquiry-panel {
+      width: 440px; background: #fff; border-radius: 20px;
+      box-shadow: 0 8px 32px rgba(220,120,0,0.13);
+      padding: 24px; display: none; flex-direction: column; gap: 14px;
+    }
+    .inquiry-panel.show { display: flex; }
+    .inquiry-panel h2 {
+      font-size: 16px; color: #ea580c; font-weight: bold;
+      padding-bottom: 10px; border-bottom: 2px solid #fed7aa;
+    }
+    .inquiry-panel p.note {
+      font-size: 12px; color: #888; line-height: 1.7; margin-top: -6px;
+    }
+    .form-row { display: flex; flex-direction: column; gap: 4px; }
+    .form-row label { font-size: 11px; color: #888; font-weight: bold; }
+    .form-row input, .form-row select, .form-row textarea {
+      width: 100%; border: 1.5px solid #e5e7eb; border-radius: 8px;
+      padding: 9px 12px; font-size: 13px; font-family: inherit; outline: none;
+      transition: border 0.2s;
+    }
+    .form-row input:focus, .form-row select:focus, .form-row textarea:focus { border-color: #f97316; }
+    .form-row textarea { resize: vertical; min-height: 80px; }
+    .form-row .required { color: #ef4444; margin-left: 3px; }
+    .inquiry-submit {
+      background: linear-gradient(135deg, #f97316, #ea580c);
+      border: none; color: white; border-radius: 10px; padding: 12px;
+      font-size: 14px; font-weight: bold; cursor: pointer; font-family: inherit;
+      transition: opacity 0.2s;
+    }
+    .inquiry-submit:hover { opacity: 0.85; }
+    .inquiry-submit:disabled { opacity: 0.4; cursor: not-allowed; }
+    .inquiry-success {
+      background: #f0fdf4; border: 1.5px solid #86efac; border-radius: 12px;
+      padding: 16px; text-align: center; display: none;
+    }
+    .inquiry-success.show { display: block; }
+    .inquiry-success p { color: #166534; font-size: 13px; line-height: 1.8; }
+  </style>
+</head>
+<body>
+
+<!-- チャット -->
+<div class="chat-container show" id="chatContainer">
+  <div class="chat-header">
+    <div class="bot-avatar">🏠</div>
+    <div class="chat-header-info">
+      <h2>ユニティ サポートBot</h2>
+      <p><span class="status-dot"></span>AI対応中｜オールマイト・てずくーる・ぷくっとシールLAB</p>
+    </div>
+    <button class="reset-btn" onclick="resetChat()">🔄 会話リセット</button>
+  </div>
+  <div class="chat-messages" id="messages"></div>
+  <div class="quick-replies" id="quickReplies"></div>
+  <div class="chat-input-area">
+    <input class="chat-input" id="userInput" type="text" placeholder="何でもお気軽にどうぞ..." />
+    <button class="send-btn" id="sendBtn" onclick="handleSend()">&#9658;</button>
+  </div>
+</div>
+
+<!-- 資料請求フォーム -->
+<div class="inquiry-panel" id="inquiryPanel">
+  <h2>📋 資料請求・お問い合わせ</h2>
+  <p class="note">ご入力いただいた内容を担当者にお送りします。<br>在庫確認のうえ、折り返しご連絡いたします。</p>
+  <div class="form-row">
+    <label>希望コンテンツ<span class="required">*</span></label>
+    <select id="inq-content">
+      <option value="">選択してください</option>
+      <option value="オールマイト">🟠 オールマイト（集客装置レンタル）</option>
+      <option value="てずくーる">🟢 てずくーる（ワークショップキットレンタル）</option>
+      <option value="ぷくっとシールLAB">🔵 ぷくっとシールLAB</option>
+    </select>
+  </div>
+  <div class="form-row">
+    <label>会社名<span class="required">*</span></label>
+    <input type="text" id="inq-company" placeholder="株式会社〇〇" />
+  </div>
+  <div class="form-row">
+    <label>担当者名<span class="required">*</span></label>
+    <input type="text" id="inq-person" placeholder="山田 太郎" />
+  </div>
+  <div class="form-row">
+    <label>電話番号<span class="required">*</span></label>
+    <input type="tel" id="inq-tel" placeholder="03-0000-0000" />
+  </div>
+  <div class="form-row">
+    <label>メールアドレス<span class="required">*</span></label>
+    <input type="email" id="inq-email" placeholder="example@company.com" />
+  </div>
+  <div class="form-row">
+    <label>問い合わせ内容（任意）</label>
+    <textarea id="inq-message" placeholder="ご希望の利用期間、人数、会場など自由にご記入ください"></textarea>
+  </div>
+  <div class="inquiry-success" id="inquirySuccess">
+    <p>✅ <strong>送信完了しました！</strong><br>担当者より折り返しご連絡いたします。<br>（目安：翌営業日以内）</p>
+  </div>
+  <button class="inquiry-submit" id="inquirySubmitBtn" onclick="submitInquiry()">送信する</button>
+  <button class="btn-close" onclick="closeInquiry()">閉じる</button>
+</div>
+
+<!-- 見積フォームパネル -->
+<div class="estimate-panel" id="estimatePanel">
+  <h2>💰 簡易見積・在庫確認依頼</h2>
+  <p class="note">ご希望の内容を入力して簡易料金を確認後、在庫確認依頼を送信してください。</p>
+
+  <!-- お客様情報 -->
+  <div class="est-section">
+    <h3>📋 お客様情報</h3>
+    <div class="est-grid">
+      <div class="est-field"><label>会社名<span class="required">*</span></label><input type="text" id="est-company" placeholder="株式会社〇〇" /></div>
+      <div class="est-field"><label>担当者名<span class="required">*</span></label><input type="text" id="est-person" placeholder="山田 太郎" /></div>
+      <div class="est-field"><label>電話番号<span class="required">*</span></label><input type="tel" id="est-tel" placeholder="03-0000-0000" /></div>
+      <div class="est-field"><label>メールアドレス<span class="required">*</span></label><input type="email" id="est-email" placeholder="example@company.com" /></div>
+    </div>
+  </div>
+
+  <!-- 利用期間・エリア -->
+  <div class="est-section">
+    <h3>📅 利用期間・配送エリア</h3>
+    <div class="est-grid">
+      <div class="est-field"><label>利用開始日<span class="required">*</span></label><input type="date" id="est-start" /></div>
+      <div class="est-field"><label>利用終了日<span class="required">*</span></label><input type="date" id="est-end" /></div>
+      <div class="est-field est-field-full"><label>配送先エリア<span class="required">*</span></label>
+        <select id="est-pref">
+          <option value="0">1都3県・関東（送料込み）</option>
+          <option value="10000">山梨・長野・静岡・福島（+10,000円）</option>
+          <option value="20000">新潟・宮城・愛知 等（+20,000円）</option>
+          <option value="30000">大阪・広島 等（+30,000円）</option>
+          <option value="40000">福岡・北海道・沖縄 等（+40,000円）</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- コンテンツ選択 -->
+  <div class="est-section">
+    <h3>🎮 希望コンテンツ（複数選択可）</h3>
+    <div class="machine-list" id="machineList">
+      <div style="font-size:12px;color:#888;">↓ サービスを選んでください</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button onclick="filterMachines('オールマイト')" class="btn-calc" style="flex:1;font-size:12px;padding:7px;">🟠 オールマイト</button>
+        <button onclick="filterMachines('てずくーる')" class="btn-calc" style="flex:1;font-size:12px;padding:7px;">🟢 てずくーる</button>
+        <button onclick="filterMachines('ぷくっとシールLAB')" class="btn-calc" style="flex:1;font-size:12px;padding:7px;">🔵 ぷくっとシールLAB</button>
+      </div>
+      <div id="machineItems"></div>
+    </div>
+  </div>
+
+  <!-- 簡易見積もりボタン -->
+  <button class="btn-calc" onclick="calcEstimate()">📊 簡易見積もりを出す</button>
+
+  <!-- 見積結果 -->
+  <div class="est-quote-result" id="estQuoteResult">
+    <h3>📊 簡易見積もり結果</h3>
+    <div class="quote-line" id="quoteLine"></div>
+    <div class="quote-total" id="quoteTotal"></div>
+    <div class="quote-note">※税込・概算金額です。在庫状況・詳細はご確認後にご案内します。</div>
+  </div>
+
+  <!-- 送信成功 -->
+  <div class="est-success" id="estSuccess">
+    <p>✅ <strong>在庫確認依頼を送信しました！</strong><br>担当者より折り返しご連絡いたします。<br>（目安：翌営業日以内）</p>
+  </div>
+
+  <!-- ボタン -->
+  <button class="btn-send-est" id="btnSendEst" onclick="submitEstimate()">📩 在庫確認・見積依頼を送る</button>
+  <button class="btn-new-est" id="btnNewEst" onclick="resetEstimateForm()">🔄 別の見積もり・在庫確認をする</button>
+  <button class="btn-close" onclick="closeEstimate()">閉じる</button>
+</div>
+
+<script>
+// ============================================================
+//  システムプロンプト（Claudeへの指示＋サービス知識）
+// ============================================================
+const SYSTEM_PROMPT = `あなたは株式会社ユニティの公式サポートBotです。
+以下のサービスについて、丁寧かつ簡潔な日本語でお客様の質問にお答えください。
+回答は300文字以内を目安にし、必要に応じて箇条書きを使ってください。
+文末に絵文字を1つ使って親しみやすくしてください。
+
+【会社情報】
+会社名：株式会社ユニティ
+所在地：東京都品川区西五反田1-13-7
+設立：2017年4月　従業員：21名
+代表：岩間 隆二郎
+WEB：https://unity-corp.site/
+オールマイト担当：吉永　TEL：080-8317-4707　メール：allmight@unity-corp.jp
+てずくーる担当：林　TEL：070-9069-2214　メール：tezchool@unity-corp.jp
+ぷくっとシールLAB担当：林　TEL：070-9069-2214　メール：tezchool@unity-corp.jp
+
+━━━━━━━━━━━━━━━━━━━━
+【サービス1】🟠 オールマイト（集客装置レンタル）
+━━━━━━━━━━━━━━━━━━━━
+店頭イベントで集客するオリジナルゲーム機器のレンタルサービス。
+携帯ショップ・ショッピングモールでの実績多数。着座率が最大150%増加した事例あり。
+
+■ラインナップと料金（税抜・関東配送込み）
+・スティックキャッチ（大）：3日100,000円／2週間150,000円／3週間200,000円／4週間250,000円　追加1日15,000円
+・スティックキャッチ（小）：3日80,000円／2週間120,000円　追加1日12,000円
+・スティックキャッチ（ペア）：3日140,000円／4週間350,000円　追加1日20,000円
+・イライラスティック：3日100,000円／4週間250,000円　追加1日15,000円
+・イライラスティックver.2：3日150,000円／4週間375,000円　追加1日20,000円
+・あひるサンダーv1：3日50,000円／4週間125,000円　追加1日10,000円
+・あひるサンダーv2：3日40,000円／4週間100,000円　追加1日10,000円
+・JET Cola：3日70,000円（現在3日間のみ）
+・ぬりえスタジアム：3日120,000円／4週間300,000円　追加1日18,000円
+
+■配送料（往復）
+関東1都3県・茨城・栃木・群馬：無料
+山梨・長野・静岡・福島：+10,000円
+新潟・宮城・愛知等：+20,000円
+大阪・広島等：+30,000円
+福岡・北海道・沖縄等：+40,000円
+
+■注意事項
+・発送日14営業日前までに配送先をご連絡ください
+・キャンセルは発送1週間前まで原則無料
+・発送後のキャンセルは全額請求
+
+━━━━━━━━━━━━━━━━━━━━
+【サービス2】🟢 てずくーる（ワークショップキットレンタル）
+━━━━━━━━━━━━━━━━━━━━
+子どもが手を動かして作る体験型ワークショップのキット一式をレンタル。
+特大ブースが5分で設営でき、ファミリー層の集客に効果的（集客140%増の実績）。
+
+■ワークショップ種類（全て対象年齢3歳〜）
+・光るお絵描きボード（5〜10分）
+・ねんどお寿司カプセル（10〜15分）
+・しゃかしゃかキーホルダー（10〜15分）
+・スノードーム（10〜15分）
+・ねこちゃん仮面（5〜10分）
+・木製クラフト貯金箱（10〜20分）
+
+■料金プラン（税抜）
+・イベントキットレンタル 3日間：50,000円
+・イベントキットレンタル 1ヶ月：100,000円
+・ワークショップ商品（キットあり特別価格）：20,000円/100人分
+・ワークショップ商品（通常価格）：50,000円/100人分
+・配送料（キットあり往復）：20,000円
+・配送料（キットなし）：5,000円/100人分
+
+■例：週末3日間・100人分の場合
+キット50,000 ＋ 商品20,000 ＋ 配送20,000 ＝ 90,000円（税抜）
+
+■発注フロー
+納品希望日の15営業日前までにメールで発注
+→ 納品 → 使用後2営業日以内に返却
+
+━━━━━━━━━━━━━━━━━━━━
+【サービス3】🔵 ぷくっとシールLAB
+━━━━━━━━━━━━━━━━━━━━
+ファミリー層向けシールワークショップのフルパッケージ。
+透明パーツに色を塗ってオリジナルシールを作る体験。
+商業施設・携帯キャリアイベント・地域イベントに最適。
+
+■パッケージ内容
+イベントゲート・背景スクリーン・バナー・POP・等身大パネル・
+テーブルクロス・子ども用白衣25着・スタッフ用白衣4着・文房具10セット
+
+■料金（税抜）
+・レンタルキット 2〜3日間：100,000円
+・ワークショップ素材（400人分）：80,000円
+・追加素材：20,000円/100人分
+・4日目以降：30,000円/日
+・送料：20,000円
+
+━━━━━━━━━━━━━━━━━━━━
+【対応できること】
+・各サービスの詳細説明・料金案内
+・見積もりのご案内（「見積書を作りたい」と言われたら見積書パネルを開く旨を伝える）
+・資料請求の受付（会社名・担当者名・メールアドレス・希望資料を確認する）
+・トラブル対応（機器の破損・紛失は担当者に連絡するよう案内：080-8317-4707）
+・発注・返却の流れの説明
+・対応範囲外の質問は「担当者にお繋ぎします」と伝えてTEL・メールを案内する
+
+【各サービス担当者連絡先】
+🟠 オールマイト担当：吉永　TEL：080-8317-4707　メール：allmight@unity-corp.jp
+🟢 てずくーる担当：林　TEL：070-9069-2214　メール：tezchool@unity-corp.jp
+🔵 ぷくっとシールLAB担当：林　TEL：070-9069-2214　メール：tezchool@unity-corp.jp
+
+【トラブル時の対応】
+機器の不具合・破損・操作方法の問い合わせは各サービス担当者へ：
+・オールマイト：吉永　TEL：080-8317-4707　メール：allmight@unity-corp.jp
+・てずくーる：林　TEL：070-9069-2214　メール：tezchool@unity-corp.jp
+・ぷくっとシールLAB：林　TEL：070-9069-2214　メール：tezchool@unity-corp.jp
+営業時間外は翌営業日に折り返し連絡。`;
+
+// ============================================================
+//  商品マスタ
+// ============================================================
+const PRODUCTS = [
+  { label: '── オールマイト ──', disabled: true, unit: 0 },
+  { label: 'スティックキャッチ（大）3日間', unit: 100000 },
+  { label: 'スティックキャッチ（大）2週間', unit: 150000 },
+  { label: 'スティックキャッチ（大）3週間', unit: 200000 },
+  { label: 'スティックキャッチ（大）4週間', unit: 250000 },
+  { label: 'スティックキャッチ（小）3日間', unit: 80000 },
+  { label: 'スティックキャッチ（ペア）3日間', unit: 140000 },
+  { label: 'イライラスティック 3日間', unit: 100000 },
+  { label: 'イライラスティック 4週間', unit: 250000 },
+  { label: 'イライラスティックver.2 3日間', unit: 150000 },
+  { label: 'あひるサンダーv1 3日間', unit: 50000 },
+  { label: 'あひるサンダーv1 4週間', unit: 125000 },
+  { label: 'あひるサンダーv2 3日間', unit: 40000 },
+  { label: 'JET Cola 3日間', unit: 70000 },
+  { label: 'ぬりえスタジアム 3日間', unit: 120000 },
+  { label: 'ぬりえスタジアム 4週間', unit: 300000 },
+  { label: '追加1日（スティックキャッチ大）', unit: 15000 },
+  { label: '追加1日（イライラスティック）', unit: 15000 },
+  { label: '追加1日（あひるサンダー）', unit: 10000 },
+  { label: '── てずくーる ──', disabled: true, unit: 0 },
+  { label: 'イベントキットレンタル 3日間', unit: 50000 },
+  { label: 'イベントキットレンタル 1ヶ月', unit: 100000 },
+  { label: 'ワークショップ商品（特別価格）100人分', unit: 20000 },
+  { label: 'ワークショップ商品（通常価格）100人分', unit: 50000 },
+  { label: 'てずくーる配送料（キットあり往復）', unit: 20000 },
+  { label: 'てずくーる配送料（キットなし）100人分', unit: 5000 },
+  { label: '── ぷくっとシールLAB ──', disabled: true, unit: 0 },
+  { label: 'ぷくっとシールLAB レンタルキット 2-3日間', unit: 100000 },
+  { label: 'ぷくっとシールLAB 素材（400人分）', unit: 80000 },
+  { label: 'ぷくっとシールLAB 追加素材 100人分', unit: 20000 },
+  { label: 'ぷくっとシールLAB 追加日（1日）', unit: 30000 },
+  { label: 'ぷくっとシールLAB 送料', unit: 20000 },
+  { label: '── その他 ──', disabled: true, unit: 0 },
+  { label: 'その他（手入力）', unit: 0 },
+];
+
+// ============================================================
+//  状態管理
+// ============================================================
+let conversationHistory = [];
+const sessionId = 'sess-' + Date.now() + '-' + Math.random().toString(36).substr(2, 6);
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbwYS1X151raboQZOXbC3w_rqq3bXFbGGxFPS9yZO3yYF9IYtjI-d708j450A-dqZBVd/exec';
+
+// ============================================================
+//  チャット開始・リセット
+// ============================================================
+function resetChat() {
+  if (!confirm('会話をリセットしますか？')) return;
+  conversationHistory = [];
+  document.getElementById('messages').innerHTML = '';
+  document.getElementById('quickReplies').innerHTML = '';
+  // 見積フォームを完全リセット
+  document.getElementById('estQuoteResult').classList.remove('show');
+  document.getElementById('estSuccess').classList.remove('show');
+  const sendBtn2 = document.getElementById('btnSendEst');
+  sendBtn2.classList.remove('show');
+  sendBtn2.disabled = false;
+  sendBtn2.textContent = '📩 在庫確認・見積依頼を送る';
+  document.getElementById('btnNewEst').classList.remove('show');
+  document.getElementById('machineItems').innerHTML = '';
+  document.getElementById('est-company').value = '';
+  document.getElementById('est-person').value = '';
+  document.getElementById('est-tel').value = '';
+  document.getElementById('est-email').value = '';
+  document.getElementById('est-start').value = '';
+  document.getElementById('est-end').value = '';
+  currentFilter = null;
+  closeEstimate();
+  initChat();
+}
+
+function initChat() {
+  conversationHistory = [];
+  addMessage('こんにちは！株式会社ユニティのサポートBotです 🏠\nオールマイト・てずくーる・ぷくっとシールLABについて、何でもお気軽にご質問ください！', 'bot');
+  setQuickReplies(['オールマイトについて', 'てずくーるについて', 'ぷくっとシールLABについて', '見積書を作りたい', '資料請求したい']);
+}
+
+// ============================================================
+//  GAS経由でClaude API呼び出し
+// ============================================================
+async function callClaude(userMessage) {
+  conversationHistory.push({ role: 'user', content: userMessage });
+
+  const res = await fetch(GAS_URL, {
+    method: 'POST',
+    mode: 'cors',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify({
+      type: 'chat',
+      system: SYSTEM_PROMPT,
+      messages: conversationHistory
+    })
+  });
+
+  const data = await res.json();
+  if (data.status !== 'ok') {
+    throw new Error(data.message || 'GASエラーが発生しました');
+  }
+  const reply = data.reply;
+  conversationHistory.push({ role: 'assistant', content: reply });
+  return reply;
+}
+
+// ============================================================
+//  UI操作
+// ============================================================
+const messagesEl     = document.getElementById('messages');
+const quickRepliesEl = document.getElementById('quickReplies');
+const userInput      = document.getElementById('userInput');
+const sendBtn        = document.getElementById('sendBtn');
+
+function scrollToBottom() { messagesEl.scrollTop = messagesEl.scrollHeight; }
+
+function addMessage(text, role) {
+  const msg = document.createElement('div');
+  msg.className = `message ${role}`;
+  const av = document.createElement('div');
+  av.className = 'message-avatar';
+  av.textContent = role === 'bot' ? '🏠' : role === 'error' ? '⚠️' : '👤';
+  const bub = document.createElement('div');
+  bub.className = 'bubble';
+  bub.textContent = text;
+  msg.appendChild(av); msg.appendChild(bub);
+  messagesEl.appendChild(msg); scrollToBottom();
+}
+
+function showTyping() {
+  const msg = document.createElement('div');
+  msg.className = 'message bot'; msg.id = 'typing';
+  const av = document.createElement('div');
+  av.className = 'message-avatar'; av.textContent = '🏠';
+  const ind = document.createElement('div');
+  ind.className = 'typing-indicator';
+  for (let i = 0; i < 3; i++) {
+    const d = document.createElement('div'); d.className = 'typing-dot'; ind.appendChild(d);
+  }
+  msg.appendChild(av); msg.appendChild(ind);
+  messagesEl.appendChild(msg); scrollToBottom();
+}
+
+function removeTyping() { const e = document.getElementById('typing'); if(e) e.remove(); }
+
+function setInputEnabled(enabled) {
+  userInput.disabled = !enabled;
+  sendBtn.disabled = !enabled;
+}
+
+function setQuickReplies(items) {
+  quickRepliesEl.innerHTML = '';
+  (items||[]).forEach(label => {
+    const btn = document.createElement('button');
+    btn.className = 'quick-reply-btn';
+    btn.textContent = label;
+    btn.onclick = () => handleSend(label);
+    quickRepliesEl.appendChild(btn);
+  });
+}
+
+// ============================================================
+//  資料請求フォーム
+// ============================================================
+function openInquiry() {
+  document.getElementById('inquiryPanel').classList.add('show');
+  document.getElementById('inquirySuccess').classList.remove('show');
+  document.getElementById('inquirySubmitBtn').disabled = false;
+  document.getElementById('inquirySubmitBtn').textContent = '送信する';
+}
+
+function closeInquiry() {
+  document.getElementById('inquiryPanel').classList.remove('show');
+}
+
+async function submitInquiry() {
+  const content  = document.getElementById('inq-content').value;
+  const company  = document.getElementById('inq-company').value.trim();
+  const person   = document.getElementById('inq-person').value.trim();
+  const tel      = document.getElementById('inq-tel').value.trim();
+  const email    = document.getElementById('inq-email').value.trim();
+  const message  = document.getElementById('inq-message').value.trim();
+
+  if (!content || !company || !person || !tel || !email) {
+    alert('※印の必須項目をすべて入力してください。');
+    return;
+  }
+
+  const btn = document.getElementById('inquirySubmitBtn');
+  btn.disabled = true;
+  btn.textContent = '送信中...';
+
+  try {
+    await fetch(GAS_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({
+        type: 'inquiry',
+        content, company, person, tel, email, message
+      })
+    });
+    document.getElementById('inquirySuccess').classList.add('show');
+    btn.textContent = '送信済み';
+
+    // チャットにも完了メッセージ
+    addMessage(`資料請求を受け付けました 📋\n${content}の担当者より折り返しご連絡いたします。\nしばらくお待ちください。`, 'bot');
+
+  } catch(e) {
+    btn.disabled = false;
+    btn.textContent = '送信する';
+    alert('送信に失敗しました。時間をおいて再度お試しください。');
+  }
+}
+
+// ============================================================
+//  ログ送信（Googleスプレッドシート）
+// ============================================================
+function sendLog(question, answer) {
+  try {
+    fetch(GAS_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({
+        type: 'log',
+        question: question,
+        answer: answer,
+        sessionId: sessionId
+      })
+    });
+  } catch(e) {
+    console.warn('ログ送信エラー:', e);
+  }
+}
+
+async function handleSend(text) {
+  const msg = text || userInput.value.trim();
+  if (!msg) return;
+  userInput.value = '';
+  setQuickReplies([]);
+  addMessage(msg, 'user');
+  setInputEnabled(false);
+  showTyping();
+
+  // 資料請求
+  if (/資料請求|資料が欲しい|資料をください/.test(msg)) {
+    removeTyping();
+    openInquiry();
+    const botMsg = '資料請求フォームを開きました 📋\n必要事項をご入力いただくと、担当者より折り返しご連絡いたします！';
+    addMessage(botMsg, 'bot');
+    setQuickReplies(['オールマイトについて', 'てずくーるについて', 'ぷくっとシールLABについて']);
+    sendLog(msg, botMsg);
+    setInputEnabled(true);
+    return;
+  }
+
+  // 見積・在庫確認
+  if (/見積|みつもり|在庫確認/.test(msg)) {
+    removeTyping();
+    openEstimate();
+    const botMsg = '簡易見積フォームを開きました 💰\nサービス・期間・エリアを選んで「簡易見積もりを出す」を押してください！';
+    addMessage(botMsg, 'bot');
+    setQuickReplies(['資料請求したい', 'オールマイトについて', 'てずくーるについて']);
+    sendLog(msg, botMsg);
+    setInputEnabled(true);
+    return;
+  }
+
+  try {
+    const reply = await callClaude(msg);
+    removeTyping();
+    addMessage(reply, 'bot');
+    setQuickReplies(['他にも質問したい', '見積書を作りたい', '資料請求したい', '担当者に連絡したい']);
+    sendLog(msg, reply);
+  } catch(e) {
+    removeTyping();
+    addMessage(`エラーが発生しました：${e.message}\n\nAPIキーや通信環境をご確認ください。`, 'error');
+  } finally {
+    setInputEnabled(true);
+    userInput.focus();
+  }
+}
+
+userInput.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) handleSend(); });
+
+// ページ読み込み時に自動スタート
+window.addEventListener('load', initChat);
+
+// ============================================================
+//  新・見積フォーム
+// ============================================================
+
+// オールマイト機器マスタ（繰り上げ料金計算用）
+const ALLMIGHT_MACHINES = [
+  { id: 'sc_large',   name: 'スティックキャッチ（大）',    p3: 100000, p14: 150000, p21: 200000, p28: 250000, extra: 15000 },
+  { id: 'sc_small',   name: 'スティックキャッチ（小）',    p3:  80000, p14: 120000, p21: null,   p28: null,   extra: 12000 },
+  { id: 'sc_pair',    name: 'スティックキャッチ（ペア）',  p3: 140000, p14: null,   p21: null,   p28: 350000, extra: 20000 },
+  { id: 'iraira',     name: 'イライラスティック',          p3: 100000, p14: null,   p21: null,   p28: 250000, extra: 15000 },
+  { id: 'iraira2',    name: 'イライラスティックver.2',     p3: 150000, p14: null,   p21: null,   p28: 375000, extra: 20000 },
+  { id: 'ahiru1',     name: 'あひるサンダーv1',            p3:  50000, p14: null,   p21: null,   p28: 125000, extra: 10000 },
+  { id: 'ahiru2',     name: 'あひるサンダーv2',            p3:  40000, p14: null,   p21: null,   p28: 100000, extra: 10000 },
+  { id: 'jetcola',    name: 'JET Cola',                    p3:  70000, p14: null,   p21: null,   p28: null,   extra: null  },
+  { id: 'nurie',      name: 'ぬりえスタジアム',            p3: 120000, p14: null,   p21: null,   p28: 300000, extra: 18000 },
+];
+
+function calcMachinePrice(machine, days) {
+  if (days <= 3)  return machine.p3;
+  if (days <= 14) return machine.p14 || (machine.p3 + machine.extra * (days - 3));
+  if (days <= 21) return machine.p21 || (machine.p14 ? machine.p14 + machine.extra * (days - 14) : machine.p3 + machine.extra * (days - 3));
+  if (days <= 28) return machine.p28 || (machine.p21 ? machine.p21 + machine.extra * (days - 21) : null);
+  return null; // 28日超は要相談
+}
+
+let currentFilter = null;
+
+function filterMachines(service) {
+  currentFilter = service;
+  const container = document.getElementById('machineItems');
+  container.innerHTML = '';
+
+  if (service === 'オールマイト') {
+    ALLMIGHT_MACHINES.forEach(m => {
+      const div = document.createElement('div');
+      div.className = 'machine-item';
+      div.innerHTML = `<input type="checkbox" id="chk_${m.id}" value="${m.id}">
+        <span>${m.name}</span>
+        <span class="price-hint">3日間 ¥${m.p3.toLocaleString()}〜</span>`;
+      div.onclick = (e) => { if(e.target.tagName !== 'INPUT') div.querySelector('input').click(); div.classList.toggle('selected', div.querySelector('input').checked); };
+      div.querySelector('input').onchange = (e) => { div.classList.toggle('selected', e.target.checked); };
+      container.appendChild(div);
+    });
+  } else if (service === 'てずくーる') {
+    const div = document.createElement('div');
+    div.className = 'machine-item selected';
+    div.innerHTML = `<input type="checkbox" id="chk_tezchool" value="tezchool" checked>
+      <span>てずくーる（基本キット＋商品100人分）</span>
+      <span class="price-hint">90,000円〜</span>`;
+    container.appendChild(div);
+  } else if (service === 'ぷくっとシールLAB') {
+    const div = document.createElement('div');
+    div.className = 'machine-item selected';
+    div.innerHTML = `<input type="checkbox" id="chk_pukutto" value="pukutto" checked>
+      <span>ぷくっとシールLAB（キット＋素材400人分）</span>
+      <span class="price-hint">200,000円〜</span>`;
+    container.appendChild(div);
+  }
+}
+
+function calcEstimate() {
+  const start = document.getElementById('est-start').value;
+  const end   = document.getElementById('est-end').value;
+  const ship  = parseInt(document.getElementById('est-pref').value || 0);
+
+  if (!start || !end) { alert('利用開始日・終了日を入力してください。'); return; }
+
+  const days = Math.ceil((new Date(end) - new Date(start)) / (1000*60*60*24)) + 1;
+  if (days <= 0) { alert('終了日は開始日より後にしてください。'); return; }
+
+  const result = document.getElementById('estQuoteResult');
+  const lineEl = document.getElementById('quoteLine');
+  const totalEl = document.getElementById('quoteTotal');
+
+  let lines = [];
+  let subtotal = 0;
+  let hasUnknown = false;
+
+  if (currentFilter === 'オールマイト') {
+    ALLMIGHT_MACHINES.forEach(m => {
+      const chk = document.getElementById(`chk_${m.id}`);
+      if (chk && chk.checked) {
+        const price = calcMachinePrice(m, days);
+        if (price === null) {
+          lines.push(`${m.name}：要相談（${days}日間）`);
+          hasUnknown = true;
+        } else {
+          lines.push(`${m.name} ${days}日間：¥${price.toLocaleString()}`);
+          subtotal += price;
+        }
+      }
+    });
+    if (lines.length === 0) { alert('機器を選択してください。'); return; }
+    lines.push(`配送料：¥${ship.toLocaleString()}`);
+    subtotal += ship;
+  } else if (currentFilter === 'てずくーる') {
+    lines.push('イベントキットレンタル 3日間：¥50,000');
+    lines.push('ワークショップ商品（特別価格）100人分：¥20,000');
+    lines.push('配送料（往復）：¥20,000');
+    subtotal = 90000 + ship;
+    if (ship > 0) lines.push(`追加配送料：¥${ship.toLocaleString()}`);
+    lines.push('※人数・期間に応じて担当者がご相談に乗ります');
+  } else if (currentFilter === 'ぷくっとシールLAB') {
+    lines.push('レンタルキット 2〜3日間：¥100,000');
+    lines.push('ワークショップ素材（400人分）：¥80,000');
+    lines.push('送料：¥20,000');
+    subtotal = 200000 + ship;
+    if (ship > 0) lines.push(`追加配送料：¥${ship.toLocaleString()}`);
+    lines.push('※人数・期間に応じて担当者がご相談に乗ります');
+  } else {
+    alert('サービスを選択してください（🟠🟢🔵ボタンを押してください）');
+    return;
+  }
+
+  const tax = Math.floor(subtotal * 0.1);
+  const grand = subtotal + tax;
+
+  lineEl.innerHTML = lines.map(l => `・${l}`).join('<br>');
+  totalEl.innerHTML = `消費税(10%)：¥${tax.toLocaleString()}<br><strong>合計（税込）：¥${grand.toLocaleString()}${hasUnknown ? '〜（要相談含む）' : '〜'}</strong>`;
+
+  result.classList.add('show');
+  document.getElementById('btnSendEst').classList.add('show');
+}
+
+function openEstimate() {
+  document.getElementById('estimatePanel').classList.add('show');
+  document.getElementById('estQuoteResult').classList.remove('show');
+  document.getElementById('estSuccess').classList.remove('show');
+  document.getElementById('btnSendEst').classList.remove('show');
+  document.getElementById('btnNewEst').classList.remove('show');
+  document.getElementById('machineItems').innerHTML = '';
+  currentFilter = null;
+}
+
+function resetEstimateForm() {
+  document.getElementById('estQuoteResult').classList.remove('show');
+  document.getElementById('estSuccess').classList.remove('show');
+  const sendBtn = document.getElementById('btnSendEst');
+  sendBtn.classList.remove('show');
+  sendBtn.disabled = false;
+  sendBtn.textContent = '📩 在庫確認・見積依頼を送る';
+  document.getElementById('btnNewEst').classList.remove('show');
+  document.getElementById('machineItems').innerHTML = '';
+  document.getElementById('est-company').value = '';
+  document.getElementById('est-person').value = '';
+  document.getElementById('est-tel').value = '';
+  document.getElementById('est-email').value = '';
+  document.getElementById('est-start').value = '';
+  document.getElementById('est-end').value = '';
+  currentFilter = null;
+}
+
+function closeEstimate() {
+  document.getElementById('estimatePanel').classList.remove('show');
+}
+
+async function submitEstimate() {
+  const company = document.getElementById('est-company').value.trim();
+  const person  = document.getElementById('est-person').value.trim();
+  const tel     = document.getElementById('est-tel').value.trim();
+  const email   = document.getElementById('est-email').value.trim();
+  const start   = document.getElementById('est-start').value;
+  const end     = document.getElementById('est-end').value;
+  const pref    = document.getElementById('est-pref').options[document.getElementById('est-pref').selectedIndex].text;
+  const quoteTxt = document.getElementById('quoteLine').innerText + '\n' + document.getElementById('quoteTotal').innerText;
+
+  if (!company || !person || !tel || !email) {
+    alert('お客様情報（会社名・担当者名・電話・メール）を入力してください。');
+    return;
+  }
+
+  const btn = document.getElementById('btnSendEst');
+  btn.disabled = true;
+  btn.textContent = '送信中...';
+
+  const mailMap = { 'オールマイト': 'allmight@unity-corp.jp', 'てずくーる': 'tezchool@unity-corp.jp', 'ぷくっとシールLAB': 'tezchool@unity-corp.jp' };
+  const to = mailMap[currentFilter] || 'allmight@unity-corp.jp';
+
+  try {
+    await fetch(GAS_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({
+        type: 'estimate',
+        to, company, person, tel, email,
+        service: currentFilter,
+        start, end, pref,
+        quote: quoteTxt
+      })
+    });
+    document.getElementById('estSuccess').classList.add('show');
+    btn.textContent = '送信済み';
+    document.getElementById('btnNewEst').classList.add('show');
+    addMessage(`在庫確認依頼を送信しました 📩\n${currentFilter}の担当者より折り返しご連絡いたします。`, 'bot');
+  } catch(e) {
+    btn.disabled = false;
+    btn.textContent = '📩 在庫確認・見積依頼を送る';
+    alert('送信に失敗しました。時間をおいて再度お試しください。');
+  }
+}
+</script>
+</body>
+</html>
