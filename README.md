@@ -7,7 +7,7 @@
 
 ## 公開URL
 
-https://ryo-claude.github.io/unity-chatbot/unity_chatbot_ai.html
+https://allmight-tezchool.github.io/unity-chatbot/unity_chatbot_ai.html
 
 ---
 
