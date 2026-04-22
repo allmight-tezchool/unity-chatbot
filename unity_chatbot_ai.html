@@ -390,11 +390,6 @@
     </div>
   </div>
 
-  <div class="form-row">
-    <label>問い合わせ内容（任意）</label>
-    <textarea id="est-message" placeholder="ご希望の利用期間、人数、会場など自由にご記入ください"></textarea>
-  </div>
-
   <!-- 簡易見積もりボタン -->
   <button class="btn-calc" onclick="calcEstimate()">📊 簡易見積もりを出す</button>
 
@@ -404,6 +399,11 @@
     <div class="quote-line" id="quoteLine"></div>
     <div class="quote-total" id="quoteTotal"></div>
     <div class="quote-note">※税込・概算金額です。在庫状況・詳細はご確認後にご案内します。</div>
+  </div>
+
+  <div class="form-row">
+    <label>問い合わせ内容（任意）</label>
+    <textarea id="est-message" placeholder="ご希望の利用期間、人数、会場など自由にご記入ください"></textarea>
   </div>
 
   <!-- 送信成功 -->
@@ -516,7 +516,7 @@ WEB：https://unity-corp.site/
 ━━━━━━━━━━━━━━━━━━━━
 【対応できること】
 ・各サービスの詳細説明・料金案内
-・見積もりのご案内（「見積書を作りたい」と言われたら見積書パネルを開く旨を伝える）
+・見積もりのご案内（「簡易見積もりする」と言われたら見積書パネルを開く旨を伝える）
 ・資料請求の受付（会社名・担当者名・メールアドレス・希望資料を確認する）
 ・トラブル対応（機器の破損・紛失は担当者に連絡するよう案内：080-8317-4707）
 ・発注・返却の流れの説明
@@ -628,7 +628,7 @@ function resetChat() {
 function initChat() {
   conversationHistory = [];
   addMessage('こんにちは！株式会社ユニティのサポートBotです！\nオールマイト・てずくーる・ぷくっとシールLABについて、何でもお気軽にご質問ください！', 'bot');
-  setQuickReplies(['オールマイトについて', 'てずくーるについて', 'ぷくっとシールLABについて', '見積書を作りたい', '資料請求したい']);
+  setQuickReplies(['オールマイトについて', 'てずくーるについて', 'ぷくっとシールLABについて', '簡易見積もりする', '資料請求したい']);
 }
 
 // ============================================================
@@ -813,19 +813,19 @@ async function handleSend(text) {
     openInquiry();
     const botMsg = '資料請求フォームを開きました 📋\n必要事項をご入力いただくと、担当者より折り返しご連絡いたします！';
     addMessage(botMsg, 'bot');
-    setQuickReplies(['オールマイトについて', 'てずくーるについて', 'ぷくっとシールLABについて']);
+    setQuickReplies(['オールマイトについて', 'てずくーるについて', 'ぷくっとシールLABについて', '簡易見積もりする', '資料請求したい']);
     sendLog(msg, botMsg);
     setInputEnabled(true);
     return;
   }
 
   // 見積・在庫確認
-  if (/見積|みつもり|在庫確認/.test(msg)) {
+  if (/見積|みつもり|在庫確認|簡易見積/.test(msg)) {
     removeTyping();
     openEstimate();
     const botMsg = '簡易見積フォームを開きました 💰\nサービス・期間・エリアを選んで「簡易見積もりを出す」を押してください！';
     addMessage(botMsg, 'bot');
-    setQuickReplies(['資料請求したい', 'オールマイトについて', 'てずくーるについて']);
+    setQuickReplies(['オールマイトについて', 'てずくーるについて', 'ぷくっとシールLABについて', '簡易見積もりする', '資料請求したい']);
     sendLog(msg, botMsg);
     setInputEnabled(true);
     return;
@@ -835,7 +835,7 @@ async function handleSend(text) {
     const reply = await callClaude(msg);
     removeTyping();
     addMessage(reply, 'bot');
-    setQuickReplies(['他にも質問したい', '見積書を作りたい', '資料請求したい', '担当者に連絡したい']);
+    setQuickReplies(['他にも質問したい', '簡易見積もりする', '資料請求したい', '担当者に連絡したい']);
     sendLog(msg, reply);
   } catch(e) {
     removeTyping();
