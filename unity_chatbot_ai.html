@@ -284,7 +284,7 @@
 <!-- チャット -->
 <div class="chat-container show" id="chatContainer">
   <div class="chat-header">
-    <div class="bot-avatar"><img src="https://ryo-claude.github.io/unity-chatbot/icon_circle.png" alt="Bot" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"></div>
+    <div class="bot-avatar"><img src="https://allmight-tezchool.github.io/unity-chatbot/icon_circle.png" alt="Bot" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"></div>
     <div class="chat-header-info">
       <h2>ユニティ サポートBot</h2>
       <p><span class="status-dot"></span>AI対応中｜オールマイト・てずくーる・ぷくっとシールLAB</p>
@@ -673,7 +673,7 @@ function addMessage(text, role) {
   const av = document.createElement('div');
   av.className = 'message-avatar';
   if (role === 'bot') {
-    av.innerHTML = '<img src="https://ryo-claude.github.io/unity-chatbot/icon_circle.png" alt="Bot" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">';
+    av.innerHTML = '<img src="https://allmight-tezchool.github.io/unity-chatbot/icon_circle.png" alt="Bot" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">';
   } else if (role === 'error') {
     av.textContent = '⚠️';
   } else {
@@ -695,7 +695,7 @@ function showTyping() {
   const msg = document.createElement('div');
   msg.className = 'message bot'; msg.id = 'typing';
   const av = document.createElement('div');
-  av.className = 'message-avatar'; av.innerHTML = '<img src="https://ryo-claude.github.io/unity-chatbot/icon_circle.png" alt="Bot" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">';
+  av.className = 'message-avatar'; av.innerHTML = '<img src="https://allmight-tezchool.github.io/unity-chatbot/icon_circle.png" alt="Bot" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">';
   const ind = document.createElement('div');
   ind.className = 'typing-indicator';
   for (let i = 0; i < 3; i++) {
