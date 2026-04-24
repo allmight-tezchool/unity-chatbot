@@ -373,7 +373,7 @@
     <input type="email" id="con-email" placeholder="example@company.com" />
   </div>
   <div class="form-row">
-    <label>お問い合わせ内容<span class="required">*</span></label>
+    <label>問い合わせ内容<span class="required">*</span></label>
     <textarea id="con-message" placeholder="ご用件・ご質問内容をご記入ください"></textarea>
   </div>
   <div class="inquiry-success" id="contactSuccess">
@@ -818,7 +818,7 @@ async function submitContact() {
 
   if (!content) { alert('希望コンテンツを選択してください。'); return; }
   if (!company || !person || !tel || !email) { alert('会社名・担当者名・電話番号・メールアドレスを入力してください。'); return; }
-  if (!message) { alert('お問い合わせ内容を入力してください。'); return; }
+  if (!message) { alert('問い合わせ内容を入力してください。'); return; }
 
   const btn = document.getElementById('contactSubmitBtn');
   btn.disabled = true;
