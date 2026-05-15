@@ -199,6 +199,16 @@
       padding: 14px; display: none;
     }
     .est-quote-result.show { display: block; }
+    .est-customer-section { display: none; }
+    .est-customer-section.show { display: flex; }
+    .est-message-row { display: none; }
+    .est-message-row.show { display: flex; flex-direction: column; }
+    .est-step-note {
+      background: #fef3c7; border: 1.5px dashed #f59e0b; border-radius: 10px;
+      padding: 12px; display: none;
+    }
+    .est-step-note.show { display: block; }
+    .est-step-note p { color: #92400e; font-size: 12.5px; line-height: 1.7; }
     .est-quote-result h3 { font-size: 14px; color: #ea580c; margin-bottom: 8px; font-weight: bold; }
     .est-quote-result .quote-line { font-size: 13px; color: #444; line-height: 1.8; }
     .est-quote-result .quote-total {
@@ -387,19 +397,8 @@
 <!-- 見積フォームパネル モーダル -->
 <div class="modal-overlay" id="estimateOverlay" onclick="handleOverlayClick(event, 'estimateOverlay')">
 <div class="estimate-panel" id="estimatePanel">
-  <h2>💰 簡易見積・在庫確認依頼</h2>
-  <p class="note">ご希望の内容を入力して簡易料金を確認後、在庫確認依頼を送信してください。</p>
-
-  <!-- お客様情報 -->
-  <div class="est-section">
-    <h3>📋 お客様情報</h3>
-    <div class="est-grid">
-      <div class="est-field"><label>会社名<span class="required">*</span></label><input type="text" id="est-company" placeholder="株式会社〇〇" /></div>
-      <div class="est-field"><label>担当者名<span class="required">*</span></label><input type="text" id="est-person" placeholder="山田 太郎" /></div>
-      <div class="est-field"><label>電話番号<span class="required">*</span></label><input type="tel" id="est-tel" placeholder="03-0000-0000" /></div>
-      <div class="est-field"><label>メールアドレス<span class="required">*</span></label><input type="email" id="est-email" placeholder="example@company.com" /></div>
-    </div>
-  </div>
+  <h2>💰 簡易見積もり</h2>
+  <p class="note">ご希望の内容を入力して簡易料金を確認できます。<br>そのまま在庫確認や担当者へ問い合わせをしたい場合は、見積もり結果の下のフォームをご入力ください。</p>
 
   <!-- 利用期間・エリア -->
   <div class="est-section">
@@ -444,7 +443,24 @@
     <div class="quote-note">※税込・概算金額です。在庫状況・詳細はご確認後にご案内します。</div>
   </div>
 
-  <div class="form-row">
+  <!-- 問い合わせステップ案内（見積もり計算後に表示） -->
+  <div class="est-step-note" id="estStepNote">
+    <p>📩 在庫確認・担当者への問い合わせをご希望の場合は、以下のフォームをご入力のうえ送信してください。<br>※見積もりだけご確認の場合はそのまま閉じていただいて構いません。</p>
+  </div>
+
+  <!-- お客様情報（見積もり計算後に表示） -->
+  <div class="est-section est-customer-section" id="customerSection">
+    <h3>📋 お客様情報</h3>
+    <div class="est-grid">
+      <div class="est-field"><label>会社名<span class="required">*</span></label><input type="text" id="est-company" placeholder="株式会社〇〇" /></div>
+      <div class="est-field"><label>担当者名<span class="required">*</span></label><input type="text" id="est-person" placeholder="山田 太郎" /></div>
+      <div class="est-field"><label>電話番号<span class="required">*</span></label><input type="tel" id="est-tel" placeholder="03-0000-0000" /></div>
+      <div class="est-field"><label>メールアドレス<span class="required">*</span></label><input type="email" id="est-email" placeholder="example@company.com" /></div>
+    </div>
+  </div>
+
+  <!-- 問い合わせ内容（見積もり計算後に表示） -->
+  <div class="form-row est-message-row" id="messageSection">
     <label>問い合わせ内容（任意）</label>
     <textarea id="est-message" placeholder="ご希望の利用期間、人数、会場など自由にご記入ください"></textarea>
   </div>
@@ -455,7 +471,7 @@
   </div>
 
   <!-- ボタン -->
-  <button class="btn-send-est" id="btnSendEst" onclick="submitEstimate()">📩 在庫確認・見積依頼を送る</button>
+  <button class="btn-send-est" id="btnSendEst" onclick="submitEstimate()">📩 担当者に在庫確認・問い合わせを送る</button>
   <button class="btn-new-est" id="btnNewEst" onclick="resetEstimateForm()">🔄 別の見積もり・在庫確認をする</button>
   <button class="btn-close" onclick="closeEstimate()">閉じる</button>
 </div>
@@ -667,8 +683,12 @@ function resetChat() {
   const sendBtn2 = document.getElementById('btnSendEst');
   sendBtn2.classList.remove('show');
   sendBtn2.disabled = false;
-  sendBtn2.textContent = '📩 在庫確認・見積依頼を送る';
+  sendBtn2.textContent = '📩 担当者に在庫確認・問い合わせを送る';
   document.getElementById('btnNewEst').classList.remove('show');
+  // お客様情報・問い合わせ内容・案内文も非表示にリセット
+  document.getElementById('estStepNote').classList.remove('show');
+  document.getElementById('customerSection').classList.remove('show');
+  document.getElementById('messageSection').classList.remove('show');
   document.getElementById('machineItems').innerHTML = '';
   document.getElementById('est-company').value = '';
   document.getElementById('est-person').value = '';
@@ -950,7 +970,7 @@ async function handleSend(text) {
   if (/見積|みつもり|在庫確認|簡易見積/.test(msg)) {
     removeTyping();
     openEstimate();
-    const botMsg = '簡易見積フォームを開きました 💰\nサービス・期間・エリアを選んで「簡易見積もりを出す」を押してください！';
+    const botMsg = '簡易見積フォームを開きました 💰\n期間・エリア・サービスを選んで「簡易見積もりを出す」を押してください！\nそのまま在庫確認や問い合わせもできます。';
     addMessage(botMsg, 'bot');
     setQuickReplies(['オールマイトについて', 'てずくーるについて', 'ぷくっとシールLABについて', '簡易見積もりをする', '資料請求したい', '担当者に連絡したい']);
     sendLog(msg, botMsg);
@@ -1122,6 +1142,10 @@ function calcEstimate() {
   totalEl.innerHTML = `消費税(10%)：¥${tax.toLocaleString()}<br><strong>合計（税込）：¥${grand.toLocaleString()}${hasUnknown ? '〜（要相談含む）' : '〜'}</strong>`;
 
   result.classList.add('show');
+  // 見積もり計算後にお客様情報フォーム・問い合わせ内容欄・案内文・送信ボタンを表示
+  document.getElementById('estStepNote').classList.add('show');
+  document.getElementById('customerSection').classList.add('show');
+  document.getElementById('messageSection').classList.add('show');
   document.getElementById('btnSendEst').classList.add('show');
 }
 
@@ -1131,6 +1155,10 @@ function openEstimate() {
   document.getElementById('estSuccess').classList.remove('show');
   document.getElementById('btnSendEst').classList.remove('show');
   document.getElementById('btnNewEst').classList.remove('show');
+  // お客様情報・問い合わせ内容・案内文は初期状態では非表示
+  document.getElementById('estStepNote').classList.remove('show');
+  document.getElementById('customerSection').classList.remove('show');
+  document.getElementById('messageSection').classList.remove('show');
   document.getElementById('machineItems').innerHTML = '';
   currentFilter = null;
 }
@@ -1141,8 +1169,12 @@ function resetEstimateForm() {
   const sendBtn = document.getElementById('btnSendEst');
   sendBtn.classList.remove('show');
   sendBtn.disabled = false;
-  sendBtn.textContent = '📩 在庫確認・見積依頼を送る';
+  sendBtn.textContent = '📩 担当者に在庫確認・問い合わせを送る';
   document.getElementById('btnNewEst').classList.remove('show');
+  // お客様情報・問い合わせ内容・案内文も非表示にリセット
+  document.getElementById('estStepNote').classList.remove('show');
+  document.getElementById('customerSection').classList.remove('show');
+  document.getElementById('messageSection').classList.remove('show');
   document.getElementById('machineItems').innerHTML = '';
   document.getElementById('est-company').value = '';
   document.getElementById('est-person').value = '';
